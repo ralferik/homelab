@@ -1,0 +1,46 @@
+- name: Baseline for Ubuntu VMs
+  hosts: docker
+  become: true
+  tasks:
+    - name: Upgrade all packages
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+        upgrade: dist
+
+    - name: Install base packages
+      ansible.builtin.apt:
+        name: [qemu-guest-agent, unattended-upgrades, ufw, htop, curl, vim]
+        state: present
+
+    - name: Start QEMU guest agent
+      ansible.builtin.systemd_service:
+        name: qemu-guest-agent
+        state: started
+      ignore_errors: "{{ ansible_check_mode }}"
+
+    - name: Set time zone
+      community.general.timezone:
+        name: Europe/Tallinn
+
+    - name: Allow SSH from LAN
+      community.general.ufw:
+        rule: allow
+        port: "22"
+        proto: tcp
+        from_ip: 192.168.1.0/24
+
+    - name: Enable UFW, deny incoming by default
+      community.general.ufw:
+        state: enabled
+        direction: incoming
+        policy: deny
+
+    - name: Check if a reboot is needed
+      ansible.builtin.stat:
+        path: /var/run/reboot-required
+      register: reboot_flag
+
+    - name: Reboot
+      ansible.builtin.reboot:
+      when: reboot_flag.stat.exists
