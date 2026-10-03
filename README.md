@@ -24,7 +24,7 @@ flowchart LR
     dongle["Zigbee USB dongle"] -. passthrough .-> ha
 ```
 
-The Docker host and Home Assistant VMs are not built yet.
+The Home Assistant VM is not built yet.
 
 ## Hardware
 
@@ -43,8 +43,8 @@ The Docker host and Home Assistant VMs are not built yet.
 |------|---------|-------|
 | Hypervisor | Proxmox VE 9 | done |
 | Remote access | OpenSSH, key-only | done |
-| Configuration management | Ansible | not started |
-| Containers | Docker Compose | not started |
+| Configuration management | Ansible | in progress |
+| Containers | Docker Engine, Compose | in progress |
 | DNS and ad blocking | AdGuard Home | not started |
 | Reverse proxy | Nginx Proxy Manager or Traefik | not started |
 | Monitoring | Prometheus, Node Exporter, Grafana | not started |
@@ -61,6 +61,7 @@ compose/   Docker Compose stacks
 ## Docs
 
 1. [Proxmox host: install, updates, SSH](docs/01-proxmox-host.md)
+2. [VM template, Docker host and Ansible](docs/02-vms-and-ansible.md)
 
 ## Decisions
 
