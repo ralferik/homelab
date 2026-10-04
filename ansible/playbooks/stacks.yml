@@ -1,0 +1,28 @@
+- name: Deploy Docker Compose stacks
+  hosts: docker
+  become: true
+  vars:
+    stacks_dir: /opt/stacks
+    stacks:
+      - traefik
+  tasks:
+    - name: Create stacks directory
+      ansible.builtin.file:
+        path: "{{ stacks_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Copy stack files
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../compose/{{ item }}/"
+        dest: "{{ stacks_dir }}/{{ item }}/"
+        mode: "0644"
+        directory_mode: "0755"
+      loop: "{{ stacks }}"
+
+    - name: Start stacks
+      community.docker.docker_compose_v2:
+        project_src: "{{ stacks_dir }}/{{ item }}"
+        state: present
+      loop: "{{ stacks }}"
+
