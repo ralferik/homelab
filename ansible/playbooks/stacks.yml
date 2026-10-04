@@ -5,6 +5,7 @@
     stacks_dir: /opt/stacks
     stacks:
       - traefik
+      - adguard
   tasks:
     - name: Create stacks directory
       ansible.builtin.file:
