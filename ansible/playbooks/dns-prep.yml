@@ -1,0 +1,32 @@
+- name: Free port 53 for AdGuard Home
+  hosts: docker
+  become: true
+  tasks:
+    - name: Create resolved drop-in directory
+      ansible.builtin.file:
+        path: /etc/systemd/resolved.conf.d
+        state: directory
+        mode: "0755"
+
+    - name: Disable the stub listener on 127.0.0.53
+      ansible.builtin.copy:
+        dest: /etc/systemd/resolved.conf.d/10-no-stub.conf
+        content: |
+          [Resolve]
+          DNSStubListener=no
+        mode: "0644"
+      notify: Restart systemd-resolved
+
+    - name: Use the real upstream servers in resolv.conf
+      ansible.builtin.file:
+        src: /run/systemd/resolve/resolv.conf
+        dest: /etc/resolv.conf
+        state: link
+        force: true
+
+  handlers:
+    - name: Restart systemd-resolved
+      ansible.builtin.systemd_service:
+        name: systemd-resolved
+        state: restarted
+
