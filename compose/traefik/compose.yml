@@ -7,18 +7,26 @@ services:
       - --providers.docker=true
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=proxy
+      - --providers.file.directory=/etc/traefik/dynamic
       - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.http.tls=true
       - --api.dashboard=true
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./dynamic:/etc/traefik/dynamic:ro
+      - ./certs:/certs:ro
     networks:
       - proxy
     labels:
       - traefik.enable=true
       - traefik.http.routers.dashboard.rule=Host(`traefik.home.arpa`)
-      - traefik.http.routers.dashboard.entrypoints=web
+      - traefik.http.routers.dashboard.entrypoints=websecure
       - traefik.http.routers.dashboard.service=api@internal
 
 networks:

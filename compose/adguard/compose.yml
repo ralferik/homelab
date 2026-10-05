@@ -14,7 +14,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.adguard.rule=Host(`adguard.home.arpa`)
-      - traefik.http.routers.adguard.entrypoints=web
+      - traefik.http.routers.adguard.entrypoints=websecure
       - traefik.http.services.adguard.loadbalancer.server.port=3000
 
 networks:

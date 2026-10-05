@@ -3,6 +3,7 @@
   become: true
   vars:
     stacks_dir: /opt/stacks
+    tls_src: "{{ lookup('env', 'HOME') }}/homelab-secrets/tls"
     stacks:
       - traefik
       - adguard
@@ -20,6 +21,22 @@
         mode: "0644"
         directory_mode: "0755"
       loop: "{{ stacks }}"
+
+    - name: Create certificate directory for Traefik
+      ansible.builtin.file:
+        path: "{{ stacks_dir }}/traefik/certs"
+        state: directory
+        mode: "0700"
+
+    - name: Copy TLS certificate and key
+      ansible.builtin.copy:
+        src: "{{ tls_src }}/{{ item.name }}"
+        dest: "{{ stacks_dir }}/traefik/certs/{{ item.name }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { name: home.arpa.crt, mode: "0644" }
+        - { name: home.arpa.key, mode: "0600" }
+      diff: false
 
     - name: Start stacks
       community.docker.docker_compose_v2:
