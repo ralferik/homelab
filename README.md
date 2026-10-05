@@ -15,11 +15,17 @@ flowchart LR
         router["Router<br/>192.168.1.1"]
         ws["Workstation"]
         subgraph pve["Proxmox VE (pve.home.arpa, 192.168.1.10)"]
-            docker["Ubuntu 24.04 VM<br/>Docker host"]
+            subgraph docker["docker01, 192.168.1.20"]
+                traefik["Traefik :80"]
+                adguard["AdGuard Home :53"]
+            end
             ha["Home Assistant VM"]
         end
     end
     ws -- "SSH, HTTPS :8006" --> pve
+    ws -- "*.home.arpa" --> traefik
+    traefik -- "web UI" --> adguard
+    ws -- "DNS :53" --> adguard
     router --- pve
     dongle["Zigbee USB dongle"] -. passthrough .-> ha
 ```
@@ -44,9 +50,9 @@ The Home Assistant VM is not built yet.
 | Hypervisor | Proxmox VE 9 | done |
 | Remote access | OpenSSH, key-only | done |
 | Configuration management | Ansible | in progress |
-| Containers | Docker Engine, Compose | in progress |
-| DNS and ad blocking | AdGuard Home | not started |
-| Reverse proxy | Nginx Proxy Manager or Traefik | not started |
+| Containers | Docker Engine, Compose | done |
+| DNS and ad blocking | AdGuard Home | done |
+| Reverse proxy | Traefik | in progress (HTTP only) |
 | Monitoring | Prometheus, Node Exporter, Grafana | not started |
 | Smart home | Home Assistant, Zigbee | not started |
 
@@ -62,6 +68,7 @@ compose/   Docker Compose stacks
 
 1. [Proxmox host: install, updates, SSH](docs/01-proxmox-host.md)
 2. [VM template, Docker host and Ansible](docs/02-vms-and-ansible.md)
+3. [DNS and reverse proxy](docs/03-dns-and-reverse-proxy.md)
 
 ## Decisions
 
@@ -74,6 +81,15 @@ add redundancy, and its ARC cache would take memory the VMs need.
 
 **`home.arpa` as the local domain.** RFC 8375 reserves it for home networks.
 `.local` is used by mDNS and causes name resolution conflicts.
+
+**Traefik instead of Nginx Proxy Manager.** Routes are Docker labels in the
+compose files, so they are in Git and deployed by Ansible. Nginx Proxy Manager
+keeps its configuration in a database that is edited through a web interface.
+
+**IPv6 turned off on the LAN.** The ISP router advertises itself as the IPv6
+DNS server and cannot be told otherwise, so clients bypassed AdGuard. With a
+public IPv4 address and nothing exposed to the internet, IPv6 was not adding
+anything.
 
 **SSH settings in a drop-in file.** `/etc/ssh/sshd_config.d/10-hardening.conf`
 is not overwritten by package upgrades and is easy to manage with Ansible.
