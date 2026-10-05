@@ -16,7 +16,7 @@ flowchart LR
         ws["Workstation"]
         subgraph pve["Proxmox VE (pve.home.arpa, 192.168.1.10)"]
             subgraph docker["docker01, 192.168.1.20"]
-                traefik["Traefik :80"]
+                traefik["Traefik :443"]
                 adguard["AdGuard Home :53"]
             end
             ha["Home Assistant VM"]
@@ -52,7 +52,7 @@ The Home Assistant VM is not built yet.
 | Configuration management | Ansible | in progress |
 | Containers | Docker Engine, Compose | done |
 | DNS and ad blocking | AdGuard Home | done |
-| Reverse proxy | Traefik | in progress (HTTP only) |
+| Reverse proxy | Traefik, HTTPS with a local CA | done |
 | Monitoring | Prometheus, Node Exporter, Grafana | not started |
 | Smart home | Home Assistant, Zigbee | not started |
 
@@ -86,6 +86,10 @@ add redundancy, and its ARC cache would take memory the VMs need.
 compose files, so they are in Git and deployed by Ansible. Nginx Proxy Manager
 keeps its configuration in a database that is edited through a web interface.
 
+**A local CA for HTTPS.** Public CAs do not issue certificates for
+`home.arpa`. A CA made with `mkcert` costs nothing and keeps everything on the
+LAN. The trade-off is installing the root certificate on each device.
+
 **IPv6 turned off on the LAN.** The ISP router advertises itself as the IPv6
 DNS server and cannot be told otherwise, so clients bypassed AdGuard. With a
 public IPv4 address and nothing exposed to the internet, IPv6 was not adding
@@ -98,6 +102,7 @@ is not overwritten by package upgrades and is easy to manage with Ansible.
 
 - SSH accepts public keys only. Root can log in with a key but not a password.
 - Secrets are kept out of the repository (Ansible Vault or ignored `.env` files).
+- TLS keys live outside the repository and are copied to the server by Ansible.
 - Only private LAN addresses are published here.
 
 ## License

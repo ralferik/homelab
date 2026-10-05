@@ -11,7 +11,8 @@ proxy for web interfaces, both running as Docker Compose stacks on docker01.
 | `pve.home.arpa` | 192.168.1.10 | Proxmox web interface |
 | DNS | 192.168.1.20:53 | AdGuard Home |
 
-Only two ports are published on docker01: 53 for DNS and 80 for Traefik. The
+Three ports are published on docker01: 53 for DNS, and 80 and 443 for
+Traefik. Port 80 only redirects to HTTPS. The
 AdGuard web interface listens on port 3000 inside the Docker network and is
 only reachable through Traefik.
 
@@ -74,7 +75,57 @@ Before DNS was in place, routes were tested with a `Host` header:
 curl -s -o /dev/null -w "%{http_code}\n" -H "Host: traefik.home.arpa" http://192.168.1.20/dashboard/
 ```
 
-Only HTTP on port 80 is set up so far.
+## HTTPS with a local CA
+
+Let's Encrypt cannot issue certificates for `home.arpa`, so I run my own CA
+with `mkcert`. The CA and the certificate are created on the control node and
+kept outside the repository:
+
+```bash
+mkcert -install
+mkdir -p ~/homelab-secrets/tls && chmod 700 ~/homelab-secrets
+cd ~/homelab-secrets/tls
+mkcert -cert-file home.arpa.crt -key-file home.arpa.key \
+  traefik.home.arpa adguard.home.arpa grafana.home.arpa prometheus.home.arpa ha.home.arpa
+```
+
+The certificate lists each name instead of using `*.home.arpa`. A new service
+means adding its name and running `mkcert` again. The certificate expires on
+5 January 2029.
+
+`stacks.yml` copies the certificate and key to `/opt/stacks/traefik/certs`
+(directory `0700`, key `0600`). The copy task has `diff: false` so that
+`--diff` never prints the key.
+
+Traefik loads it as the default certificate from a file provider:
+
+```yaml
+# compose/traefik/dynamic/tls.yml
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /certs/home.arpa.crt
+        keyFile: /certs/home.arpa.key
+```
+
+The `web` entrypoint redirects everything to `websecure`, and `websecure` has
+TLS enabled, so routers only need `entrypoints=websecure`. TLS ends at
+Traefik. Traffic to the containers stays plain HTTP inside the Docker network.
+
+The root certificate is trusted on Windows with:
+
+```powershell
+certutil -addstore -f ROOT homelab-rootCA.crt
+```
+
+On iOS the profile has to be installed and then trusted separately under
+General > About > Certificate Trust Settings. I have not done this on the
+phone yet.
+
+`rootCA-key.pem` (in `mkcert -CAROOT`) can sign a certificate for any name
+that my devices would accept, so it is kept off the server and backed up
+offline.
 
 ## AdGuard Home
 
@@ -149,6 +200,6 @@ setting the router's DNS back to automatic restores name resolution.
 
 ## Still to do
 
-- HTTPS for the web interfaces
+- Trust the CA on the phone
 - Manage the DNS rewrites from the repository
 - Back up `/opt/stacks/*/conf`
