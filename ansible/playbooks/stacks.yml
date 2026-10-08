@@ -7,6 +7,7 @@
     stacks:
       - traefik
       - adguard
+      - monitoring
   tasks:
     - name: Create stacks directory
       ansible.builtin.file:
