@@ -30,6 +30,7 @@ flowchart LR
     ws -- "SSH, HTTPS :8006" --> pve
     ws -- "*.home.arpa" --> traefik
     traefik -- "web UI" --> adguard
+    traefik -- "ha.home.arpa" --> haos
     ws -- "DNS :53" --> adguard
     router --- pve
     dongle["Zigbee USB dongle"] -. passthrough .-> z2m
