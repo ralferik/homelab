@@ -14,12 +14,17 @@ flowchart LR
     subgraph LAN["LAN 192.168.1.0/24"]
         router["Router<br/>192.168.1.1"]
         ws["Workstation"]
+        phone["iPhone<br/>Apple Home"]
         subgraph pve["Proxmox VE (pve.home.arpa, 192.168.1.10)"]
             subgraph docker["docker01, 192.168.1.20"]
                 traefik["Traefik :443"]
                 adguard["AdGuard Home :53"]
             end
-            ha["Home Assistant VM"]
+            subgraph haos["Home Assistant OS, 192.168.1.30"]
+                z2m["Zigbee2MQTT"]
+                mqtt["Mosquitto"]
+                homekit["HomeKit Bridge"]
+            end
         end
     end
     ws -- "SSH, HTTPS :8006" --> pve
@@ -27,10 +32,11 @@ flowchart LR
     traefik -- "web UI" --> adguard
     ws -- "DNS :53" --> adguard
     router --- pve
-    dongle["Zigbee USB dongle"] -. passthrough .-> ha
+    dongle["Zigbee USB dongle"] -. passthrough .-> z2m
+    z2m --> mqtt
+    lamps["IKEA bulbs"] -. Zigbee .- dongle
+    phone -- "HomeKit" --> homekit
 ```
-
-The Home Assistant VM is not built yet.
 
 ## Hardware
 
@@ -41,7 +47,7 @@ The Home Assistant VM is not built yet.
 | RAM | 16 GB |
 | Storage | Samsung 512 GB NVMe SSD |
 | Network | 1 GbE |
-| Zigbee | SONOFF Dongle Lite MG21 |
+| Zigbee | SONOFF Dongle Lite MG21 (EmberZNet firmware) |
 
 ## Status
 
@@ -54,7 +60,7 @@ The Home Assistant VM is not built yet.
 | DNS and ad blocking | AdGuard Home | done |
 | Reverse proxy | Traefik, HTTPS with a local CA | done |
 | Monitoring | Prometheus, Node Exporter, Grafana | not started |
-| Smart home | Home Assistant, Zigbee | not started |
+| Smart home | Home Assistant, Zigbee2MQTT | in progress (lights done) |
 
 ## Layout
 
@@ -69,6 +75,7 @@ compose/   Docker Compose stacks
 1. [Proxmox host: install, updates, SSH](docs/01-proxmox-host.md)
 2. [VM template, Docker host and Ansible](docs/02-vms-and-ansible.md)
 3. [DNS and reverse proxy](docs/03-dns-and-reverse-proxy.md)
+4. [Home Assistant and Zigbee](docs/04-home-assistant-and-zigbee.md)
 
 ## Decisions
 
@@ -90,6 +97,21 @@ keeps its configuration in a database that is edited through a web interface.
 `home.arpa`. A CA made with `mkcert` costs nothing and keeps everything on the
 LAN. The trade-off is installing the root certificate on each device.
 
+**Home Assistant OS in a VM.** The container version of Home Assistant has no
+add-ons and no built-in backups. A VM can be snapshotted before upgrades, and
+the Zigbee dongle is passed through to it alone.
+
+**Zigbee instead of Thread for the lights.** The bulbs support both. Thread
+with the MG21 as a radio kept failing with transmit timeouts, a known problem
+with this chip and IKEA devices, so the dongle runs Zigbee firmware. Details
+are in [04](docs/04-home-assistant-and-zigbee.md).
+
+**Zigbee2MQTT instead of ZHA.** Wider device support, and the Zigbee network
+is separate from Home Assistant behind MQTT.
+
+**A fallback DNS server for Home Assistant only.** The lights should not stop
+working while docker01 is being upgraded.
+
 **IPv6 turned off on the LAN.** The ISP router advertises itself as the IPv6
 DNS server and cannot be told otherwise, so clients bypassed AdGuard. With a
 public IPv4 address and nothing exposed to the internet, IPv6 was not adding
@@ -103,6 +125,7 @@ is not overwritten by package upgrades and is easy to manage with Ansible.
 - SSH accepts public keys only. Root can log in with a key but not a password.
 - Secrets are kept out of the repository (Ansible Vault or ignored `.env` files).
 - TLS keys live outside the repository and are copied to the server by Ansible.
+- Zigbee network keys stay in Home Assistant and its backups.
 - Only private LAN addresses are published here.
 
 ## License
