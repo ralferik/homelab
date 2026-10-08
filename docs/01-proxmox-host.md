@@ -53,6 +53,33 @@ root@pve:~# pveversion
 pve-manager/9.2.21/4f6e0ac86f9e8c7f (running kernel: 7.0.14-20-pve)
 ```
 
+## Subscription popup
+
+Without a subscription the web interface shows a "No valid subscription"
+dialog at every login. There is no setting for it. The dialog comes from
+one call in `proxmoxlib.js`, and a `sed` replaces that call with a no-op.
+
+Any upgrade of `proxmox-widget-toolkit` restores the original file, so the
+change is a script that apt runs after every dpkg run:
+
+```
+# /etc/apt/apt.conf.d/99-pve-no-nag
+DPkg::Post-Invoke { "/usr/local/sbin/pve-no-nag.sh"; };
+```
+
+The script exits early if the file is already patched, so it only restarts
+`pveproxy` when something changed. Both files are installed by
+`ansible/playbooks/proxmox.yml`.
+
+Tested by reinstalling the package, which put back the original file:
+
+```console
+root@pve:~# apt install --reinstall -y proxmox-widget-toolkit
+...
+Setting up proxmox-widget-toolkit (5.2.10) ...
+patched
+```
+
 ## SSH keys
 
 On the Windows workstation:
