@@ -77,6 +77,48 @@ Every other device on the LAN uses AdGuard only. Home Assistant has the router
 as a second DNS server on purpose: the lights should keep working while
 docker01 is down for an upgrade, and HA does not need any `home.arpa` names.
 
+## Access through Traefik
+
+Home Assistant is reachable at `https://ha.home.arpa`. It is not a container
+on docker01, so the route cannot come from Docker labels. It is a file in
+Traefik's file provider directory instead:
+
+```yaml
+# compose/traefik/dynamic/ha.yml
+http:
+  routers:
+    ha:
+      rule: Host(`ha.home.arpa`)
+      entryPoints:
+        - websecure
+      service: ha
+  services:
+    ha:
+      loadBalancer:
+        servers:
+          - url: http://192.168.1.30
+```
+
+Traefik runs with `--providers.file.watch=true`, so new files in
+`dynamic/` are picked up without a restart.
+
+Home Assistant answers requests from a proxy it does not trust with
+`400 Bad Request`. It has to be told to accept `X-Forwarded-For` from
+docker01 only.
+
+On this version (2026.9) the HTTP settings are no longer read from
+`configuration.yaml`. They were migrated to the UI under Settings > System >
+Network > HTTP server, and an `http:` block in YAML is ignored, with a
+warning under Repairs. The default port is 80, not 8123. I found this out
+because the YAML change had no effect after a restart and the log kept
+saying the HTTP integration was not set up for reverse proxies.
+
+The working setting is under Reverse proxy in that section: X-Forwarded-For
+enabled, trusted proxies `192.168.1.20`.
+
+The phone still uses `http://192.168.1.30` in the HA app until the local CA
+is trusted on it.
+
 ## Zigbee2MQTT
 
 I chose Zigbee2MQTT over the built-in ZHA integration. It supports more
@@ -141,7 +183,9 @@ have responded instantly since.
 Getting Matter back would need a different Thread radio, for example an MG24
 based dongle or an Apple home hub acting as a border router.
 
-The OTBR and Matter Server add-ons are stopped and no longer start on boot.
+After the switch I removed the Thread, Matter and OTBR integrations and
+uninstalled the OTBR and Matter Server add-ons, so nothing unused is left
+running or waiting for updates.
 
 ## Apple Home
 
@@ -181,7 +225,6 @@ panel and is not part of Home Assistant.
 
 ## Still to do
 
-- Route `ha.home.arpa` through Traefik
-- Remove the Thread and Matter add-ons and integrations
+- Trust the CA on the phone and switch the HA app to `https://ha.home.arpa`
 - Update Home Assistant Core
 - Pair the IKEA STYRBAR remote, which is Zigbee only
