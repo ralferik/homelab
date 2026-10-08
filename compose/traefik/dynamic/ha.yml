@@ -1,0 +1,12 @@
+http:
+  routers:
+    ha:
+      rule: Host(`ha.home.arpa`)
+      entryPoints:
+        - websecure
+      service: ha
+  services:
+    ha:
+      loadBalancer:
+        servers:
+          - url: http://192.168.1.30
