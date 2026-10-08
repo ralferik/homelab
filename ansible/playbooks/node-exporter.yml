@@ -1,0 +1,27 @@
+- name: Install Prometheus Node Exporter
+  hosts: docker:proxmox
+  become: true
+  tasks:
+    - name: Install node exporter
+      ansible.builtin.apt:
+        name: prometheus-node-exporter
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Start node exporter
+      ansible.builtin.systemd_service:
+        name: prometheus-node-exporter
+        state: started
+        enabled: true
+      ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Let Prometheus reach node exporter on docker01
+  hosts: docker
+  become: true
+  tasks:
+    - name: Allow 9100 from Docker networks only
+      community.general.ufw:
+        rule: allow
+        port: "9100"
+        proto: tcp
+        from_ip: 172.16.0.0/12
