@@ -39,6 +39,13 @@
         - { name: home.arpa.key, mode: "0600" }
       diff: false
 
+    - name: Copy monitoring secrets
+      ansible.builtin.copy:
+        src: "{{ lookup('env', 'HOME') }}/homelab-secrets/monitoring.env"
+        dest: "{{ stacks_dir }}/monitoring/.env"
+        mode: "0600"
+      diff: false
+
     - name: Start stacks
       community.docker.docker_compose_v2:
         project_src: "{{ stacks_dir }}/{{ item }}"
