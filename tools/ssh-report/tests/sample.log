@@ -1,0 +1,11 @@
+Oct 10 18:22:12 pve sshd-session[410835]: Accepted publickey for root from 192.168.1.182 port 58656 ssh2: ED25519 SHA256:JXWMT/tg8eGRHz3+7er3KdFUvch5Kseb6eU8C3TThU0
+Oct 10 18:24:19 pve sshd-session[411206]: Invalid user admin from 192.168.1.182 port 52262
+Oct 10 18:24:19 pve sshd-session[411206]: Connection closed by invalid user admin 192.168.1.182 port 52262 [preauth]
+Oct 10 18:24:19 pve sshd-session[411208]: Invalid user test from 192.168.1.182 port 52274
+Oct 10 18:24:19 pve sshd-session[411208]: Connection closed by invalid user test 192.168.1.182 port 52274 [preauth]
+Oct 10 18:24:19 pve sshd-session[411210]: Connection closed by authenticating user root 192.168.1.182 port 52280 [preauth]
+Oct 10 19:01:02 pve sshd-session[420001]: Invalid user oracle from 203.0.113.7 port 40110
+Oct 10 19:01:02 pve sshd-session[420001]: Connection closed by invalid user oracle 203.0.113.7 port 40110 [preauth]
+Oct 10 19:01:05 pve sshd-session[420002]: Connection closed by authenticating user root 203.0.113.7 port 40122 [preauth]
+Oct 10 19:01:09 pve sshd-session[420003]: Connection closed by authenticating user root 203.0.113.7 port 40130 [preauth]
+Oct 10 19:05:44 pve sshd-session[420010]: Connection closed by authenticating user root 198.51.100.23 port 61001 [preauth]
