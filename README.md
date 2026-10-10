@@ -19,6 +19,8 @@ flowchart LR
             subgraph docker["docker01, 192.168.1.20"]
                 traefik["Traefik :443"]
                 adguard["AdGuard Home :53"]
+                prom["Prometheus"]
+                grafana["Grafana"]
             end
             subgraph haos["Home Assistant OS, 192.168.1.30"]
                 z2m["Zigbee2MQTT"]
@@ -31,6 +33,8 @@ flowchart LR
     ws -- "*.home.arpa" --> traefik
     traefik -- "web UI" --> adguard
     traefik -- "ha.home.arpa" --> haos
+    traefik --> grafana
+    grafana -. "queries" .- prom
     ws -- "DNS :53" --> adguard
     router --- pve
     dongle["Zigbee USB dongle"] -. passthrough .-> z2m
@@ -60,7 +64,7 @@ flowchart LR
 | Containers | Docker Engine, Compose | done |
 | DNS and ad blocking | AdGuard Home | done |
 | Reverse proxy | Traefik, HTTPS with a local CA | done |
-| Monitoring | Prometheus, Node Exporter, Grafana | not started |
+| Monitoring | Prometheus, Node Exporter, Grafana | done |
 | Smart home | Home Assistant, Zigbee2MQTT | in progress (lights done) |
 
 ## Layout
@@ -77,6 +81,7 @@ compose/   Docker Compose stacks
 2. [VM template, Docker host and Ansible](docs/02-vms-and-ansible.md)
 3. [DNS and reverse proxy](docs/03-dns-and-reverse-proxy.md)
 4. [Home Assistant and Zigbee](docs/04-home-assistant-and-zigbee.md)
+5. [Monitoring](docs/05-monitoring.md)
 
 ## Decisions
 
@@ -117,6 +122,13 @@ working while docker01 is being upgraded.
 DNS server and cannot be told otherwise, so clients bypassed AdGuard. With a
 public IPv4 address and nothing exposed to the internet, IPv6 was not adding
 anything.
+
+**Node Exporter as a system package.** It should see the host directly, and
+the Proxmox host does not run Docker.
+
+**Grafana dashboards provisioned from Git.** The data source and dashboard are
+files loaded on startup, so a rebuilt VM gets the same dashboard without any
+clicking. Dashboards are read-only in the UI for the same reason.
 
 **SSH settings in a drop-in file.** `/etc/ssh/sshd_config.d/10-hardening.conf`
 is not overwritten by package upgrades and is easy to manage with Ansible.
