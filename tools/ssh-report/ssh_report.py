@@ -1,5 +1,7 @@
 import re
 import sys
+import argparse
+import os
 
 
 ipv6 = r'''(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|
@@ -17,6 +19,7 @@ ipv6 = r'''(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|
 -9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]
 |1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]
 |1{0,1}[0-9]){0,1}[0-9]))'''
+
 
 def count_attempts(log):
     attempts = {}
@@ -44,13 +47,34 @@ def count_attempts(log):
 
     return attempts
 
+def format_metrics(attempts):
+    lines = [
+        "# HELP ssh_failed_attempts Failed SSH login attempts per IP in the last 24 hours.",
+        "# TYPE ssh_failed_attempts gauge",
+    ]
+    for ip, count in attempts.items():
+        lines.append(f'ssh_failed_attempts{{ip="{ip}"}} {count}')
+    return "\n".join(lines) + "\n"
+
 
 def main():
-    with open(sys.argv[1]) as log:
+    parser = argparse.ArgumentParser(description="Count failed SSH login attempts per IP.")
+    parser.add_argument("logfile", help="sshd log, or /dev/stdin")
+    parser.add_argument("--prom", help="write Prometheus metrics to this file instead of printing")
+    args = parser.parse_args()
+
+    with open(args.logfile) as log:
         attempts = count_attempts(log)
-    desc = {k: v for k, v in sorted(attempts.items(), key=lambda item: item[1], reverse=True)}
-    for k, v in desc.items():
-        print(k, v)
+
+    if args.prom:
+        tmp = args.prom + ".tmp"
+        with open(tmp, "w") as f:
+            f.write(format_metrics(attempts))
+        os.replace(tmp, args.prom)
+    else:
+        desc = {k: v for k, v in sorted(attempts.items(), key=lambda item: item[1], reverse=True)}
+        for k, v in desc.items():
+            print(k, v)
 
 if __name__ == "__main__":
     main()
