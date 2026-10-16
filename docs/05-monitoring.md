@@ -111,6 +111,39 @@ as they are.
 On pve, RAM sits around 50 percent because the memory given to the VMs counts
 as used on the host.
 
+## Failed SSH logins
+
+`tools/ssh-report/ssh_report.py` is a small Python script I wrote that counts
+failed SSH login attempts per IP address. With `--prom` it writes the result in
+the Prometheus text format instead of printing it.
+
+Node Exporter's textfile collector reads every `*.prom` file in
+`/var/lib/prometheus/node-exporter/` on each scrape, so the script does not
+need its own HTTP server. The Debian package already uses this directory for
+`apt.prom` and `nvme.prom`.
+
+`ansible/playbooks/ssh-report.yml` copies the script to pve and docker01 and
+installs a systemd service and timer. Every five minutes the service runs:
+
+```bash
+journalctl -u ssh --since "24 hours ago" --no-pager \
+  | python3 /usr/local/lib/ssh-report/ssh_report.py /dev/stdin \
+      --prom /var/lib/prometheus/node-exporter/ssh.prom
+```
+
+The result is a gauge with one series per source address:
+
+```
+ssh_failed_attempts{instance="pve", ip="192.168.1.182"} 1
+```
+
+The script writes to a temporary file and renames it, so Node Exporter never
+reads a half-written file. An address that has no failed attempts in the last
+24 hours disappears from the file, and so does its series.
+
+The "Failed SSH logins (24h)" panel on the dashboard shows these series. SSH
+is not reachable from the internet here, so normally the panel is empty.
+
 ## Problems I ran into
 
 **Grafana 13 exports a new format.** Export as JSON produced a
@@ -133,4 +166,3 @@ start.
 - Alerts for disk usage and targets that are down
 - Pin image versions instead of `latest`
 - Monitor the Home Assistant VM
-- Export failed SSH login counts as a metric (see the log analyzer project)
