@@ -1,0 +1,50 @@
+- name: Export failed SSH logins as Prometheus metrics
+  hosts: docker:proxmox
+  become: true
+  tasks:
+    - name: Create script directory
+      ansible.builtin.file:
+        path: /usr/local/lib/ssh-report
+        state: directory
+        mode: "0755"
+
+    - name: Copy script
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../tools/ssh-report/ssh_report.py"
+        dest: /usr/local/lib/ssh-report/ssh_report.py
+        mode: "0755"
+
+    - name: Install service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/ssh-report.service
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Export failed SSH login counts for Prometheus
+
+          [Service]
+          Type=oneshot
+          ExecStart=/bin/sh -c 'journalctl -u ssh --since "24 hours ago" --no-pager | /usr/bin/python3 /usr/local/lib/ssh-report/ssh_report.py /dev/stdin --prom /var/lib/prometheus/node-exporter/ssh.prom'
+
+    - name: Install timer
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/ssh-report.timer
+        mode: "0644"
+        content: |
+          [Unit]
+          Description=Run ssh-report every 5 minutes
+
+          [Timer]
+          OnBootSec=1min
+          OnUnitActiveSec=5min
+
+          [Install]
+          WantedBy=timers.target
+
+    - name: Enable and start timer
+      ansible.builtin.systemd:
+        name: ssh-report.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+      ignore_errors: "{{ ansible_check_mode }}"
