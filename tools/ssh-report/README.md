@@ -14,3 +14,8 @@ Usage:
 
 `tests/sample.log` has real lines from my Proxmox host plus a few made-up
 attempts from documentation addresses (RFC 5737).
+
+Tests:
+
+    cd tools/ssh-report
+    python3 -m pytest -v
