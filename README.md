@@ -16,6 +16,7 @@ flowchart LR
         ws["Workstation"]
         phone["iPhone<br/>Apple Home"]
         subgraph pve["Proxmox VE (pve.home.arpa, 192.168.1.10)"]
+            ts["Tailscale subnet router<br/>LXC, 192.168.1.11"]
             subgraph docker["docker01, 192.168.1.20"]
                 traefik["Traefik :443"]
                 adguard["AdGuard Home :53"]
@@ -30,6 +31,8 @@ flowchart LR
         end
     end
     ws -- "SSH, HTTPS :8006" --> pve
+    laptop["Laptop, away from home"] -- "Tailscale (WireGuard)" --> ts
+    ts -- "routes to LAN" --> traefik
     ws -- "*.home.arpa" --> traefik
     traefik -- "web UI" --> adguard
     traefik -- "ha.home.arpa" --> haos
@@ -60,6 +63,7 @@ flowchart LR
 |------|---------|-------|
 | Hypervisor | Proxmox VE 9 | done |
 | Remote access | OpenSSH, key-only | done |
+| VPN | Tailscale subnet router, split DNS | done |
 | Configuration management | Ansible | in progress |
 | Containers | Docker Engine, Compose | done |
 | DNS and ad blocking | AdGuard Home | done |
@@ -73,6 +77,7 @@ flowchart LR
 docs/      build notes, one file per stage
 ansible/   inventory and playbooks
 compose/   Docker Compose stacks
+tailscale/ Tailscale access policy
 ```
 
 ## Docs
@@ -82,6 +87,7 @@ compose/   Docker Compose stacks
 3. [DNS and reverse proxy](docs/03-dns-and-reverse-proxy.md)
 4. [Home Assistant and Zigbee](docs/04-home-assistant-and-zigbee.md)
 5. [Monitoring](docs/05-monitoring.md)
+6. [Remote access](docs/06-remote-access.md)
 
 ## Decisions
 
@@ -130,11 +136,18 @@ the Proxmox host does not run Docker.
 files loaded on startup, so a rebuilt VM gets the same dashboard without any
 clicking. Dashboards are read-only in the UI for the same reason.
 
+**Tailscale instead of port forwarding.** No port on the router is open to the
+internet. Access depends on my identity and device key, and the subnet router
+means the hosts on the LAN need no VPN software. It runs in its own small
+container so it keeps working when docker01 is down.
+
 **SSH settings in a drop-in file.** `/etc/ssh/sshd_config.d/10-hardening.conf`
 is not overwritten by package upgrades and is easy to manage with Ansible.
 
 ## Security
 
+- No ports are forwarded from the internet. Remote access is through
+  Tailscale, limited by an access policy to the ports I use.
 - SSH accepts public keys only. Root can log in with a key but not a password.
 - Secrets are kept out of the repository (Ansible Vault or ignored `.env` files).
 - TLS keys live outside the repository and are copied to the server by Ansible.
