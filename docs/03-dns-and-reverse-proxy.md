@@ -119,9 +119,56 @@ The root certificate is trusted on Windows with:
 certutil -addstore -f ROOT homelab-rootCA.crt
 ```
 
+On macOS it goes into the system keychain:
+
+```bash
+sudo security add-trusted-cert -d -r trustRoot \
+  -k /Library/Keychains/System.keychain homelab-rootCA.pem
+```
+
+Before trusting it I compared the SHA-256 fingerprint
+(`openssl x509 -noout -fingerprint -sha256 -in ...`) on the Mac and on the
+control node. Firefox keeps its own certificate store and needs the CA
+imported separately. `curl` inside WSL does not trust the CA either, so tests
+from there use `--cacert "$(mkcert -CAROOT)/rootCA.pem"`.
+
 On iOS the profile has to be installed and then trusted separately under
 General > About > Certificate Trust Settings. I have not done this on the
 phone yet.
+
+### Proxmox web interface
+
+The Proxmox UI does not go through Traefik. It has its own web server,
+`pveproxy`, on port 8006, and it should keep working when docker01 is down,
+because that is when I need it most. It gets its own certificate from the same
+CA:
+
+```bash
+mkcert -cert-file pve.home.arpa.crt -key-file pve.home.arpa.key \
+  pve.home.arpa pve 192.168.1.10
+```
+
+The IP address is in the certificate as well, so opening the UI by address
+does not show a warning either.
+
+`ansible/playbooks/pve-cert.yml` installs it. The first version copied the
+files straight to `/etc/pve/local/pveproxy-ssl.pem` and `.key` and failed
+with `Operation not permitted`. `/etc/pve` is the Proxmox cluster file system,
+which does not support `chmod`, and the copy module changes the mode of its
+temporary file before renaming it. `unsafe_writes: true` did not help: the
+content was written, but the module still failed afterwards. `--check` passed
+every time, because a dry run never writes anything.
+
+The playbook now copies the files to `/etc/homelab/tls` on pve (directory
+`0700`, key `0600`), and a handler runs Proxmox's own tool only when one of
+them changed:
+
+```bash
+pvenode cert set /etc/homelab/tls/pve.home.arpa.crt \
+  /etc/homelab/tls/pve.home.arpa.key --force 1 --restart 1
+```
+
+A second run reports `changed=0`.
 
 `rootCA-key.pem` (in `mkcert -CAROOT`) can sign a certificate for any name
 that my devices would accept, so it is kept off the server and backed up

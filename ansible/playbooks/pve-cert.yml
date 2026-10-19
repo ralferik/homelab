@@ -1,0 +1,57 @@
+---
+# Installs the mkcert certificate for the Proxmox web interface.
+# The certificate and key are created on the control node and kept in
+# ~/homelab-secrets/tls, outside the repository.
+#
+# /etc/pve is the Proxmox cluster file system and refuses chmod, so the copy
+# module cannot write there. The files are copied to a normal directory
+# first, and pvenode installs them into /etc/pve and restarts pveproxy.
+- name: Proxmox web interface certificate
+  hosts: proxmox
+  become: true
+  vars:
+    tls_src: "{{ lookup('env', 'HOME') }}/homelab-secrets/tls"
+    tls_dir: /etc/homelab/tls
+
+  tasks:
+    - name: Create certificate directory
+      ansible.builtin.file:
+        path: "{{ tls_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
+    - name: Copy certificate
+      ansible.builtin.copy:
+        src: "{{ tls_src }}/pve.home.arpa.crt"
+        dest: "{{ tls_dir }}/pve.home.arpa.crt"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Install certificate
+
+    - name: Copy key
+      ansible.builtin.copy:
+        src: "{{ tls_src }}/pve.home.arpa.key"
+        dest: "{{ tls_dir }}/pve.home.arpa.key"
+        owner: root
+        group: root
+        mode: "0600"
+      diff: false
+      notify: Install certificate
+
+  handlers:
+    - name: Install certificate
+      ansible.builtin.command:
+        argv:
+          - pvenode
+          - cert
+          - set
+          - "{{ tls_dir }}/pve.home.arpa.crt"
+          - "{{ tls_dir }}/pve.home.arpa.key"
+          - --force
+          - "1"
+          - --restart
+          - "1"
+      changed_when: true

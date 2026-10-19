@@ -156,5 +156,4 @@ later it was up. The container's network service had not finished starting.
 - Join the gateway with an auth key from Ansible Vault instead of a browser
   login, so it can be rebuilt by a playbook
 - Keep the access policy in Git and apply it with Tailscale's GitOps action
-- Trust the local CA on the MacBook
 - Monitor the gateway container
