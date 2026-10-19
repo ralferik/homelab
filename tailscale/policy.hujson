@@ -1,0 +1,33 @@
+// Tailscale access policy for the homelab tailnet.
+// Applied by hand in the admin console (Access controls > JSON editor).
+// Anything not granted here is denied.
+{
+  "tagOwners": {
+    "tag:subnet-router": ["autogroup:admin"],
+  },
+
+  // A rebuilt router gets its LAN route approved without a manual click.
+  "autoApprovers": {
+    "routes": {
+      "192.168.1.0/24": ["tag:subnet-router"],
+    },
+  },
+
+  "grants": [
+    {
+      // My own devices may reach the LAN, on these ports only.
+      "src": ["autogroup:member"],
+      "dst": ["192.168.1.0/24"],
+      "ip": [
+        "tcp:22",   // SSH
+        "tcp:80",   // Traefik, redirects to 443
+        "tcp:443",  // Traefik: Grafana, Prometheus, AdGuard, HA
+        "tcp:8006", // Proxmox web UI
+        "tcp:8123", // Home Assistant, direct
+        "tcp:53",   // AdGuard DNS, needed for split DNS
+        "udp:53",
+        "icmp:*",
+      ],
+    },
+  ],
+}
