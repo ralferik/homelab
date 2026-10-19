@@ -104,3 +104,14 @@ Two things to keep in mind:
 - Ports published by containers bypass UFW, because Docker inserts its own
   iptables rules ahead of UFW's. Services will sit behind a reverse proxy
   instead of publishing their own ports.
+
+## SSH keys
+
+Each workstation has its own ed25519 key pair. Public keys live in
+`ansible/files/ssh-keys/`, one file per device, and
+`ansible/playbooks/ssh-keys.yml` installs them on every host with the
+`authorized_key` module (root on pve, ralf on docker01).
+
+Adding a device: generate a key on it, commit its `.pub` file, run the
+playbook. The playbook only adds keys (`state: present`); removing a lost
+device's key is done by setting `state: absent` for that file.

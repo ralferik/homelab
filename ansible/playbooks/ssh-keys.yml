@@ -1,0 +1,10 @@
+- name: Manage SSH authorized keys
+  hosts: all
+  tasks:
+    - name: Install public keys from ansible/files/ssh-keys
+      ansible.posix.authorized_key:
+        user: "{{ ansible_user }}"
+        key: "{{ lookup('file', item) }}"
+        state: present
+      loop: "{{ query('fileglob', playbook_dir + '/../files/ssh-keys/*.pub') }}"
+
