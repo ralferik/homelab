@@ -1,0 +1,55 @@
+# BILRESA E2490 scroll wheel -> magamistuba_lagi. See docs/04.
+alias: Magamistoa pult
+description: BILRESA E2490 -> magamistuba_lagi (IKEA default layout via HA)
+mode: queued
+max: 10
+triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/Magamistoa pult
+conditions:
+  - condition: template
+    value_template: "{{ trigger.payload_json.action is defined and trigger.payload_json.action not in [none, ''] }}"
+actions:
+  - variables:
+      a: "{{ trigger.payload_json.action }}"
+      target_light: light.magamistuba_lagi
+      color_counter: counter.magamistoa_varv
+      presets:
+        - {color_temp_kelvin: 2200}
+        - {color_temp_kelvin: 2700}
+        - {color_temp_kelvin: 3200}
+        - {color_temp_kelvin: 4000}
+        - {color_temp_kelvin: 5000}
+        - {color_temp_kelvin: 6500}
+        - {hs_color: [200, 60]}
+        - {hs_color: [240, 70]}
+        - {hs_color: [280, 70]}
+        - {hs_color: [330, 70]}
+        - {hs_color: [0, 80]}
+        - {hs_color: [30, 90]}
+  - choose:
+      - conditions: "{{ a == 'on' }}"
+        sequence:
+          - action: light.turn_on
+            target: {entity_id: "{{ target_light }}"}
+      - conditions: "{{ a == 'off' }}"
+        sequence:
+          - action: light.turn_off
+            target: {entity_id: "{{ target_light }}"}
+      - conditions: "{{ a == 'brightness_move_to_level' }}"
+        sequence:
+          - action: light.turn_on
+            target: {entity_id: "{{ target_light }}"}
+            data:
+              brightness: "{{ [trigger.payload_json.action_level | int(128), 5] | max }}"
+              transition: 0.5
+      - conditions: "{{ a in ['on_double', 'off_double'] }}"
+        sequence:
+          - variables:
+              i: "{{ states(color_counter) | int(0) + (1 if a == 'on_double' else -1) }}"
+          - action: counter.set_value
+            target: {entity_id: "{{ color_counter }}"}
+            data: {value: "{{ i }}"}
+          - action: light.turn_on
+            target: {entity_id: "{{ target_light }}"}
+            data: "{{ dict(presets[i % (presets | length)], transition=1.5) }}"

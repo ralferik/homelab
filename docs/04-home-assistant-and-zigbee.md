@@ -223,8 +223,78 @@ function is a paid upgrade, and until then the heater never connects to the
 network. I decided not to buy it, so the sauna stays controlled from its own
 panel and is not part of Home Assistant.
 
+## Remotes
+
+| Remote | Model | Controls | How |
+|--------|-------|----------|-----|
+| Elutoa STYRBAR | E2001/E2002/E2313 | `elutoa_lambid` | Zigbee bind to the group |
+| Elutoa pult | BILRESA E2489 (two buttons) | `elutoa_lambid` | HA automation |
+| Magamistoa pult | BILRESA E2490 (scroll wheel) | `magamistuba_lagi` | HA automation |
+
+| Group | ID | Members |
+|-------|----|---------|
+| `elutoa_lambid` | 1 | Muna, Põrandalamp, Sõõrik |
+| `magamistuba_lagi` | 21659 | magamistuba_lagi_1, magamistuba_lagi_2 |
+| (none) | 21658 | intentionally empty |
+
+### BILRESA in Zigbee mode
+
+BILRESA remotes are Matter-over-Thread devices with a hidden, unofficial
+Zigbee mode. To enter it: hold the pair button under the battery cover for
+about 10 seconds (factory reset), move away from the bulbs, press it 4 times
+(Touchlink), then 8 times (join). Permit join has to be open on the
+coordinator only. Firmware updates for these remotes only come over Matter,
+and IKEA could remove the Zigbee mode in a later update.
+
+In Zigbee mode the remotes always send to fixed groups: 21658 for on, off
+and brightness, and 65289 for the IKEA scene commands used to change colour.
+The bindings cannot be changed. Every BILRESA remote controls whatever is in
+those groups, so a lamp in group 21658 is switched by every BILRESA in the
+house. Touchlink to unlock the scroll wheel's channels 2 and 3 did not work
+for me, and the channel button sends nothing in Zigbee mode.
+
+So group 21658 stays empty and the BILRESA remotes go through Home
+Assistant. Each one has an automation with an MQTT trigger on
+`zigbee2mqtt/<remote name>` that maps the `action` field to the right room.
+The automations are in `home-assistant/automations/`. They follow IKEA's
+default layout:
+
+| Action | Scroll wheel | Two-button remote |
+|--------|--------------|-------------------|
+| `on` / `off` | press (toggles) | top / bottom button |
+| `on_double` | double press: next colour | double press on: next colour |
+| `off_double` | triple press: previous colour | double press off: previous colour |
+| brightness | turn the wheel (`brightness_move_to_level`) | hold (`brightness_move_up/down`) |
+
+Colour steps through a list of presets. The current position is kept in a
+counter helper per room (`counter.elutoa_varv`, `counter.magamistoa_varv`)
+because an automation does not remember anything between runs.
+
+The trade-off: the BILRESA remotes do not work when Home Assistant or the
+server is down. The STYRBAR does, because it talks to the group directly.
+
+### STYRBAR
+
+The STYRBAR had an old Touchlink binding to group 21658 that did not show in
+the Zigbee2MQTT Bind tab. The log gave it away: its `off` events still had
+`action_group: 21658`. Unbinding from Zigbee2MQTT did not clear it, so I
+factory reset the remote (pair button 4 times) and bound `genBasic`,
+`genOnOff` and `genLevelCtrl` to `elutoa_lambid`. It also had to be unbound
+from the coordinator, because a STYRBAR only sends to one target. The
+remote sleeps, so a button has to be pressed right before each bind or
+unbind, otherwise the request times out.
+
+### Lessons
+
+- Renaming a group in Zigbee2MQTT does not change its Home Assistant entity
+  ID. The group was first created as `elutoa_labid`, and the automation
+  pointed at `light.elutoa_lambid`, which did not exist until I renamed the
+  entity in HA.
+- When a group command seems to do nothing, toggle the group from the
+  Zigbee2MQTT UI with a few seconds between off and on. My first test sent
+  both within a second, so the lamps changed and changed back.
+
 ## Still to do
 
 - Trust the CA on the phone and switch the HA app to `https://ha.home.arpa`
 - Update Home Assistant Core
-- Pair the IKEA STYRBAR remote, which is Zigbee only

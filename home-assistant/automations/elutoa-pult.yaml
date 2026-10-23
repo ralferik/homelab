@@ -1,0 +1,60 @@
+# BILRESA E2489 two-button remote -> elutoa_lambid. See docs/04.
+alias: Elutoa pult
+description: BILRESA E2489 -> elutoa_lambid (IKEA default layout via HA)
+mode: restart
+triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/Elutoa pult
+conditions:
+  - condition: template
+    value_template: "{{ trigger.payload_json.action is defined and trigger.payload_json.action not in [none, ''] }}"
+actions:
+  - variables:
+      a: "{{ trigger.payload_json.action }}"
+      target_light: light.elutoa_lambid
+      color_counter: counter.elutoa_varv
+      presets:
+        - {color_temp_kelvin: 2200}
+        - {color_temp_kelvin: 2700}
+        - {color_temp_kelvin: 3200}
+        - {color_temp_kelvin: 4000}
+        - {color_temp_kelvin: 5000}
+        - {color_temp_kelvin: 6500}
+        - {hs_color: [200, 60]}
+        - {hs_color: [240, 70]}
+        - {hs_color: [280, 70]}
+        - {hs_color: [330, 70]}
+        - {hs_color: [0, 80]}
+        - {hs_color: [30, 90]}
+  - choose:
+      - conditions: "{{ a == 'on' }}"
+        sequence:
+          - action: light.turn_on
+            target: {entity_id: "{{ target_light }}"}
+      - conditions: "{{ a == 'off' }}"
+        sequence:
+          - action: light.turn_off
+            target: {entity_id: "{{ target_light }}"}
+      # Hold sends move_up/down, release sends brightness_stop. mode: restart
+      # cancels the loop when the stop event arrives.
+      - conditions: "{{ a in ['brightness_move_up', 'brightness_move_down'] }}"
+        sequence:
+          - repeat:
+              count: 10
+              sequence:
+                - action: light.turn_on
+                  target: {entity_id: "{{ target_light }}"}
+                  data:
+                    brightness_step_pct: "{{ 10 if a == 'brightness_move_up' else -10 }}"
+                    transition: 0.3
+                - delay: "00:00:00.35"
+      - conditions: "{{ a in ['on_double', 'off_double'] }}"
+        sequence:
+          - variables:
+              i: "{{ states(color_counter) | int(0) + (1 if a == 'on_double' else -1) }}"
+          - action: counter.set_value
+            target: {entity_id: "{{ color_counter }}"}
+            data: {value: "{{ i }}"}
+          - action: light.turn_on
+            target: {entity_id: "{{ target_light }}"}
+            data: "{{ dict(presets[i % (presets | length)], transition=1.5) }}"
