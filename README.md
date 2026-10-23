@@ -1,5 +1,7 @@
 # homelab
 
+[![CI](https://github.com/ralferik/homelab/actions/workflows/ci.yml/badge.svg)](https://github.com/ralferik/homelab/actions/workflows/ci.yml)
+
 Configuration and notes for my home server. It runs Proxmox VE on a small HP
 desktop and hosts DNS, smart home and monitoring services for my home network.
 
@@ -70,6 +72,7 @@ flowchart LR
 | Reverse proxy | Traefik, HTTPS with a local CA | done |
 | Monitoring | Prometheus, Node Exporter, Grafana | done |
 | Smart home | Home Assistant, Zigbee2MQTT | in progress (lights done) |
+| CI | GitHub Actions: yamllint, ansible-lint, pytest, gitleaks | done |
 
 ## Layout
 
@@ -78,6 +81,8 @@ docs/      build notes, one file per stage
 ansible/   inventory and playbooks
 compose/   Docker Compose stacks
 tailscale/ Tailscale access policy
+tools/     small scripts I wrote, with tests
+.github/   CI workflow
 ```
 
 ## Docs
@@ -153,6 +158,7 @@ is not overwritten by package upgrades and is easy to manage with Ansible.
 - TLS keys live outside the repository and are copied to the server by Ansible.
 - Zigbee network keys stay in Home Assistant and its backups.
 - Only private LAN addresses are published here.
+- Every push is scanned for secrets with gitleaks, across the full Git history.
 
 ## License
 
