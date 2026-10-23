@@ -24,7 +24,8 @@
 
           [Service]
           Type=oneshot
-          ExecStart=/bin/sh -c 'journalctl -u ssh --since "24 hours ago" --no-pager | /usr/bin/python3 /usr/local/lib/ssh-report/ssh_report.py /dev/stdin --prom /var/lib/prometheus/node-exporter/ssh.prom'
+          ExecStart=/bin/sh -c 'journalctl -u ssh --since "24 hours ago" --no-pager \
+            | /usr/bin/python3 /usr/local/lib/ssh-report/ssh_report.py /dev/stdin --prom /var/lib/prometheus/node-exporter/ssh.prom'
 
     - name: Install timer
       ansible.builtin.copy:

@@ -4,4 +4,3 @@ tls:
       defaultCertificate:
         certFile: /certs/home.arpa.crt
         keyFile: /certs/home.arpa.key
-

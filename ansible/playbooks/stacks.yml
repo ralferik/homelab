@@ -51,4 +51,3 @@
         project_src: "{{ stacks_dir }}/{{ item }}"
         state: present
       loop: "{{ stacks }}"
-
