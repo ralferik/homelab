@@ -24,3 +24,6 @@ compose/*/data/
 .DS_Store
 __pycache__/
 .pytest_cache/
+
+# Collections installed by ansible-lint/ansible-galaxy
+.ansible/
