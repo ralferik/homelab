@@ -93,6 +93,7 @@ tools/     small scripts I wrote, with tests
 4. [Home Assistant and Zigbee](docs/04-home-assistant-and-zigbee.md)
 5. [Monitoring](docs/05-monitoring.md)
 6. [Remote access](docs/06-remote-access.md)
+7. [CI](docs/07-ci.md)
 
 ## Decisions
 
