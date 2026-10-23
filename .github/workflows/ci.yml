@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  yamllint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - run: pip install -r requirements-ci.txt
+      - run: yamllint --format github .
+
+  ansible-lint:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: ansible
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - run: pip install -r ../requirements-ci.txt
+      - run: ansible-galaxy collection install -r requirements.yml
+      - run: ansible-lint
+
+  pytest:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        # docker01 runs Ubuntu 24.04 (3.12), pve runs Debian 13 (3.13)
+        python-version: ["3.12", "3.13"]
+    defaults:
+      run:
+        working-directory: tools/ssh-report
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - run: pip install -r ../../requirements-ci.txt
+      - run: python -m pytest -v
