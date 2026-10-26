@@ -46,6 +46,8 @@ flowchart LR
     z2m --> mqtt
     lamps["IKEA bulbs"] -. Zigbee .- dongle
     phone -- "HomeKit" --> homekit
+    usbdisk[("USB NVMe backup disk")]
+    pve -. "vzdump, nightly" .-> usbdisk
 ```
 
 ## Hardware
@@ -55,7 +57,8 @@ flowchart LR
 | Host | HP EliteDesk 705 G4 35W |
 | CPU | AMD PRO A10-9700E (4 cores) |
 | RAM | 16 GB |
-| Storage | Samsung 512 GB NVMe SSD |
+| Storage | Samsung 512 GB NVMe SSD (system and guests) |
+| Backup disk | Samsung PM981a 512 GB NVMe in a USB 3 enclosure (RTL9210B) |
 | Network | 1 GbE |
 | Zigbee | SONOFF Dongle Lite MG21 (EmberZNet firmware) |
 
@@ -73,6 +76,7 @@ flowchart LR
 | Monitoring | Prometheus, Node Exporter, Grafana | done |
 | Smart home | Home Assistant, Zigbee2MQTT | in progress (lights done) |
 | CI | GitHub Actions: yamllint, ansible-lint, pytest, gitleaks | done |
+| Backups | vzdump to a USB disk, nightly, restore tested | done (no offsite copy yet) |
 
 ## Layout
 
