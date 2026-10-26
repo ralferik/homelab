@@ -1,0 +1,113 @@
+---
+# Backup disk and nightly vzdump job on the Proxmox host.
+# The disk is a USB NVMe drive with a single ext4 partition labelled
+# pve-backup. Partitioning and formatting are one-time manual steps, see
+# docs/08-backups.md. This playbook mounts the disk, registers it as a
+# Proxmox storage and creates the backup job if they do not exist yet.
+- name: Proxmox backups
+  hosts: proxmox
+  become: true
+  vars:
+    backup_fs_uuid: c87101bf-2cfb-47a0-b061-86addb1809bd
+    backup_mountpoint: /mnt/pve-backup
+    backup_storage: usb-backup
+    backup_prune: keep-daily=7,keep-weekly=4,keep-monthly=3
+    backup_job_id: daily-usb
+    backup_schedule: "03:00"
+
+  tasks:
+    - name: Check whether the backup disk is mounted
+      ansible.builtin.command:
+        argv: [findmnt, --mountpoint, "{{ backup_mountpoint }}"]
+      register: backup_findmnt
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    # The empty mountpoint is made immutable, so nothing can write to the
+    # root disk when the USB disk is missing. This only works while the
+    # disk is not mounted, otherwise the flag would land on the disk itself.
+    - name: Create immutable mountpoint
+      when: backup_findmnt.rc != 0
+      block:
+        - name: Create mountpoint directory
+          ansible.builtin.file:
+            path: "{{ backup_mountpoint }}"
+            state: directory
+            owner: root
+            group: root
+            mode: "0755"
+
+        - name: Set immutable flag on mountpoint
+          ansible.builtin.file:
+            path: "{{ backup_mountpoint }}"
+            attributes: "+i"
+
+    - name: Mount backup disk
+      ansible.posix.mount:
+        src: "UUID={{ backup_fs_uuid }}"
+        path: "{{ backup_mountpoint }}"
+        fstype: ext4
+        opts: defaults,noatime,nofail,x-systemd.device-timeout=10s
+        dump: "0"
+        passno: "2"
+        state: mounted
+
+    - name: Check whether the backup storage exists
+      ansible.builtin.command:
+        argv: [pvesh, get, "/storage/{{ backup_storage }}"]
+      register: backup_storage_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Add backup storage
+      ansible.builtin.command:
+        argv:
+          - pvesm
+          - add
+          - dir
+          - "{{ backup_storage }}"
+          - --path
+          - "{{ backup_mountpoint }}"
+          - --content
+          - backup
+          - --is_mountpoint
+          - "yes"
+          - --prune-backups
+          - "{{ backup_prune }}"
+      when: backup_storage_check.rc != 0
+      changed_when: true
+
+    - name: Check whether the backup job exists
+      ansible.builtin.command:
+        argv: [pvesh, get, "/cluster/backup/{{ backup_job_id }}"]
+      register: backup_job_check
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Create nightly backup job
+      ansible.builtin.command:
+        argv:
+          - pvesh
+          - create
+          - /cluster/backup
+          - --id
+          - "{{ backup_job_id }}"
+          - --schedule
+          - "{{ backup_schedule }}"
+          - --storage
+          - "{{ backup_storage }}"
+          - --all
+          - "1"
+          - --mode
+          - snapshot
+          - --compress
+          - zstd
+          - --notes-template
+          - !unsafe "{{guestname}}"
+          - --enabled
+          - "1"
+      when: backup_job_check.rc != 0
+      changed_when: true
