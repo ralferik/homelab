@@ -94,6 +94,7 @@ tools/     small scripts I wrote, with tests
 5. [Monitoring](docs/05-monitoring.md)
 6. [Remote access](docs/06-remote-access.md)
 7. [CI](docs/07-ci.md)
+8. [Backups](docs/08-backups.md)
 
 ## Decisions
 
