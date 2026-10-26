@@ -155,6 +155,15 @@ container so it keeps working when docker01 is down.
 **SSH settings in a drop-in file.** `/etc/ssh/sshd_config.d/10-hardening.conf`
 is not overwritten by package upgrades and is easy to manage with Ansible.
 
+**Backups with vzdump to a USB disk, not Proxmox Backup Server.** Three small
+guests do not need a separate backup server. vzdump writes compressed archives
+to a plain directory that any Linux machine can read. The cost is that every
+run reads the full guest disks, where PBS would read only the changed blocks.
+
+**ext4 on the backup disk.** Same reasoning as for the system disk: a single
+disk gives ZFS no redundancy, and a ZFS pool on USB is suspended when the
+connection drops.
+
 ## Security
 
 - No ports are forwarded from the internet. Remote access is through
