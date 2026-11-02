@@ -24,6 +24,7 @@ flowchart LR
                 adguard["AdGuard Home :53"]
                 prom["Prometheus"]
                 grafana["Grafana"]
+                convertx["ConvertX"]
             end
             subgraph haos["Home Assistant OS, 192.168.1.30"]
                 z2m["Zigbee2MQTT"]
@@ -39,6 +40,7 @@ flowchart LR
     traefik -- "web UI" --> adguard
     traefik -- "ha.home.arpa" --> haos
     traefik --> grafana
+    traefik --> convertx
     grafana -. "queries" .- prom
     ws -- "DNS :53" --> adguard
     router --- pve
@@ -77,6 +79,7 @@ flowchart LR
 | Smart home | Home Assistant, Zigbee2MQTT | in progress (lights done) |
 | CI | GitHub Actions: yamllint, ansible-lint, pytest, gitleaks | done |
 | Backups | vzdump to a USB disk, nightly, restore tested | done (no offsite copy yet) |
+| File converter | ConvertX (pandoc, LibreOffice, ImageMagick, ffmpeg) | done |
 
 ## Layout
 
@@ -99,6 +102,7 @@ tools/     small scripts I wrote, with tests
 6. [Remote access](docs/06-remote-access.md)
 7. [CI](docs/07-ci.md)
 8. [Backups](docs/08-backups.md)
+9. [File converter](docs/09-file-converter.md)
 
 ## Decisions
 
@@ -163,6 +167,10 @@ run reads the full guest disks, where PBS would read only the changed blocks.
 **ext4 on the backup disk.** Same reasoning as for the system disk: a single
 disk gives ZFS no redundancy, and a ZFS pool on USB is suspended when the
 connection drops.
+
+**ConvertX for file conversion.** It wraps pandoc, LibreOffice, ImageMagick
+and ffmpeg in one web interface, so files I convert stay on the LAN. The image
+is large, so the container has a memory limit and deletes files after a day.
 
 ## Security
 

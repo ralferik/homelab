@@ -1,0 +1,29 @@
+services:
+  convertx:
+    image: ghcr.io/c4illin/convertx:v0.20.0
+    container_name: convertx
+    restart: unless-stopped
+    mem_limit: 1g
+    environment:
+      - JWT_SECRET=${CONVERTX_JWT_SECRET}
+      - ACCOUNT_REGISTRATION=false
+      - HTTP_ALLOWED=false
+      - ALLOW_UNAUTHENTICATED=false
+      - AUTO_DELETE_EVERY_N_HOURS=24
+      - TZ=Europe/Tallinn
+    volumes:
+      - convertx-data:/app/data
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.convertx.rule=Host(`convert.home.arpa`)
+      - traefik.http.routers.convertx.entrypoints=websecure
+      - traefik.http.services.convertx.loadbalancer.server.port=3000
+
+volumes:
+  convertx-data:
+
+networks:
+  proxy:
+    external: true

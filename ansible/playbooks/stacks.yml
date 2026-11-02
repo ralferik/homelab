@@ -8,6 +8,7 @@
       - traefik
       - adguard
       - monitoring
+      - convertx
   tasks:
     - name: Create stacks directory
       ansible.builtin.file:
@@ -43,6 +44,13 @@
       ansible.builtin.copy:
         src: "{{ lookup('env', 'HOME') }}/homelab-secrets/monitoring.env"
         dest: "{{ stacks_dir }}/monitoring/.env"
+        mode: "0600"
+      diff: false
+
+    - name: Copy ConvertX secrets
+      ansible.builtin.copy:
+        src: "{{ lookup('env', 'HOME') }}/homelab-secrets/convertx.env"
+        dest: "{{ stacks_dir }}/convertx/.env"
         mode: "0600"
       diff: false
 
