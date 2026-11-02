@@ -9,6 +9,7 @@
       - adguard
       - monitoring
       - convertx
+      - metube
   tasks:
     - name: Create stacks directory
       ansible.builtin.file:

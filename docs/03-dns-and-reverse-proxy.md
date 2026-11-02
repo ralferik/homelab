@@ -87,7 +87,7 @@ mkdir -p ~/homelab-secrets/tls && chmod 700 ~/homelab-secrets
 cd ~/homelab-secrets/tls
 mkcert -cert-file home.arpa.crt -key-file home.arpa.key \
   traefik.home.arpa adguard.home.arpa grafana.home.arpa prometheus.home.arpa ha.home.arpa \
-  convert.home.arpa
+  convert.home.arpa metube.home.arpa
 ```
 
 The certificate lists each name instead of using `*.home.arpa`. A new service
