@@ -25,6 +25,7 @@ flowchart LR
                 prom["Prometheus"]
                 grafana["Grafana"]
                 convertx["ConvertX"]
+                metube["MeTube"]
             end
             subgraph haos["Home Assistant OS, 192.168.1.30"]
                 z2m["Zigbee2MQTT"]
@@ -41,6 +42,7 @@ flowchart LR
     traefik -- "ha.home.arpa" --> haos
     traefik --> grafana
     traefik --> convertx
+    traefik --> metube
     grafana -. "queries" .- prom
     ws -- "DNS :53" --> adguard
     router --- pve
@@ -80,6 +82,7 @@ flowchart LR
 | CI | GitHub Actions: yamllint, ansible-lint, pytest, gitleaks | done |
 | Backups | vzdump to a USB disk, nightly, restore tested | done (no offsite copy yet) |
 | File converter | ConvertX (pandoc, LibreOffice, ImageMagick, ffmpeg) | done |
+| Media downloader | MeTube (yt-dlp, ffmpeg) | done |
 
 ## Layout
 
@@ -102,7 +105,7 @@ tools/     small scripts I wrote, with tests
 6. [Remote access](docs/06-remote-access.md)
 7. [CI](docs/07-ci.md)
 8. [Backups](docs/08-backups.md)
-9. [File converter](docs/09-file-converter.md)
+9. [File converter and downloader](docs/09-file-converter.md)
 
 ## Decisions
 

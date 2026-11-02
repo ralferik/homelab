@@ -1,4 +1,4 @@
-# 09 File converter
+# 09 File converter and downloader
 
 I wanted one place on the LAN to convert files between common formats:
 Markdown to PDF, office documents to PDF, images between PNG, JPEG, WebP and
@@ -92,3 +92,31 @@ removed with `docker image prune`.
   need cAdvisor, which costs more memory than this service.
 - Converted files are not backed up. They are temporary by design, and the
   volume is only covered by the nightly vzdump of the whole VM.
+
+## MeTube
+
+Next to ConvertX I run [MeTube](https://github.com/alexta69/MeTube) at
+`https://metube.home.arpa`. It is a web interface for
+[yt-dlp](https://github.com/yt-dlp/yt-dlp): paste a link, pick a format, and
+yt-dlp downloads the streams while ffmpeg merges them or converts them to
+audio. Both tools are in the image. I use it for videos and audio I am allowed
+to keep, and it saves me running yt-dlp over SSH.
+
+| Item | Value |
+|------|-------|
+| Stack | [`compose/metube/compose.yml`](../compose/metube/compose.yml) |
+| Image | `ghcr.io/alexta69/metube:2026.11.01` (pinned) |
+| URL | `https://metube.home.arpa`, through Traefik |
+| Data | Docker volume `metube-downloads` at `/downloads` |
+| Memory limit | 1 GB |
+
+MeTube has no automatic cleanup. `DELETE_FILE_ON_TRASHCAN=true` makes deleting
+an entry in the web interface also delete the file, which is how I keep the
+volume small. When the NAS is set up the volume will become a bind mount on it.
+
+MeTube has no login of its own. It is reachable only from the LAN and over
+Tailscale, so I accept that for now. Basic auth in Traefik is on the list for
+this and the other services without a login.
+
+yt-dlp has to keep up with changes on the sites it downloads from, so this
+image will need updates more often than the others.
