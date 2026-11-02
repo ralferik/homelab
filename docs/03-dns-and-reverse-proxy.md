@@ -86,12 +86,14 @@ mkcert -install
 mkdir -p ~/homelab-secrets/tls && chmod 700 ~/homelab-secrets
 cd ~/homelab-secrets/tls
 mkcert -cert-file home.arpa.crt -key-file home.arpa.key \
-  traefik.home.arpa adguard.home.arpa grafana.home.arpa prometheus.home.arpa ha.home.arpa
+  traefik.home.arpa adguard.home.arpa grafana.home.arpa prometheus.home.arpa ha.home.arpa \
+  convert.home.arpa
 ```
 
 The certificate lists each name instead of using `*.home.arpa`. A new service
-means adding its name and running `mkcert` again. The certificate expires on
-5 January 2029.
+means adding its name and running `mkcert` again, then restarting Traefik.
+The current certificate was issued on 2 November 2026 and expires on
+2 February 2029.
 
 `stacks.yml` copies the certificate and key to `/opt/stacks/traefik/certs`
 (directory `0700`, key `0600`). The copy task has `diff: false` so that
