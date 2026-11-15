@@ -26,6 +26,8 @@ flowchart LR
                 grafana["Grafana"]
                 convertx["ConvertX"]
                 metube["MeTube"]
+                mealie["Mealie"]
+                sparky["SparkyFitness"]
             end
             subgraph haos["Home Assistant OS, 192.168.1.30"]
                 z2m["Zigbee2MQTT"]
@@ -43,6 +45,8 @@ flowchart LR
     traefik --> grafana
     traefik --> convertx
     traefik --> metube
+    traefik --> mealie
+    traefik --> sparky
     grafana -. "queries" .- prom
     ws -- "DNS :53" --> adguard
     router --- pve
@@ -83,6 +87,8 @@ flowchart LR
 | Backups | vzdump to a USB disk, nightly, restore tested | done (no offsite copy yet) |
 | File converter | ConvertX (pandoc, LibreOffice, ImageMagick, ffmpeg) | done |
 | Media downloader | MeTube (yt-dlp, ffmpeg) | done |
+| Recipes and meal plans | Mealie | done |
+| Food and fitness tracking | SparkyFitness | done |
 
 ## Layout
 
@@ -106,6 +112,7 @@ tools/     small scripts I wrote, with tests
 7. [CI](docs/07-ci.md)
 8. [Backups](docs/08-backups.md)
 9. [File converter and downloader](docs/09-file-converter.md)
+10. [Recipes, meal plans and food tracking](docs/10-food-and-fitness.md)
 
 ## Decisions
 
@@ -174,6 +181,11 @@ connection drops.
 **ConvertX for file conversion.** It wraps pandoc, LibreOffice, ImageMagick
 and ffmpeg in one web interface, so files I convert stay on the LAN. The image
 is large, so the container has a memory limit and deletes files after a day.
+
+**Two existing apps instead of my own food tracker.** Mealie handles recipes,
+meal plans and shopping lists, and SparkyFitness handles the food diary. They
+run on docker01 next to the other stacks, so they share its proxy,
+certificate and backups instead of needing a new container.
 
 ## Security
 
