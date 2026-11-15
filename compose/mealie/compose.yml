@@ -1,0 +1,29 @@
+services:
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:v3.31.0
+    container_name: mealie
+    restart: unless-stopped
+    mem_limit: 1g
+    environment:
+      - BASE_URL=https://mealie.home.arpa
+      - ALLOW_SIGNUP=false
+      - TZ=Europe/Tallinn
+      - DEFAULT_GROUP=Home
+      - DEFAULT_HOUSEHOLD=Home
+      - DAILY_SCHEDULE_TIME=03:30
+    volumes:
+      - mealie-data:/app/data
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.mealie.rule=Host(`mealie.home.arpa`)
+      - traefik.http.routers.mealie.entrypoints=websecure
+      - traefik.http.services.mealie.loadbalancer.server.port=9000
+
+volumes:
+  mealie-data:
+
+networks:
+  proxy:
+    external: true
